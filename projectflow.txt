@@ -1,0 +1,7 @@
+brand ads -> videos
+videos -> images + speech + text
+url -> download video -> cloud storage
+vectorDB search service -> PDF data (compliance docs)
+video indexer -> transcripts (dialogues)
+video -> images -> OCR -> text on screen claims
+tracking / logs
