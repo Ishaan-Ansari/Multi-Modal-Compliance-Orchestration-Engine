@@ -38,3 +38,5 @@ def setup_logger(app_name: str, log_dir: str = 'logs'):
     return logger
 
 loggerNodes = setup_logger('Nodes')
+loggerServices = setup_logger('Services')
+loggerState = setup_logger('State')
