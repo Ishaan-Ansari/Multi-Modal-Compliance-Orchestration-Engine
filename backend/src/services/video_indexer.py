@@ -14,6 +14,8 @@ import subprocess
 from pathlib import Path
 from typing import List, Dict, Any, Optional, Tuple
 
+from backend.utils import _extract_yt_id
+
 from logger import loggerServices as logger
 
 DOWNLOAD_DIR = os.getenv("VIDEO_DOWNLOAD_DIR", "tmp/video_audit_downloads")
@@ -62,27 +64,62 @@ class VideoIndexerService:
 
         return local_file_path, video_id
     
-    
+    def extract_metadata(self, local_file_path: str, video_id: str) -> Dict[str, Any]:
+        """Extracts metadata from the video file."""
+        try:
+            return self._metadata_from_yt_dlp(video_id)
+        except Exception as e:
+            logger.warning(f"yt-dlp metadata extraction failed: {e}. Falling back to ffprobe.")
+            return self._metadata_from_ffprobe(local_file_path)
+        
+# ─── Private Helpers Functions ────────────────────────────────────────────────────────
+    def _metadata_from_yt_dlp(self, video_id: str) -> Dict[str, Any]:
+        """Extracts metadata using yt-dlp."""
+        import json
+        url = f"https://www.youtube.com/watch?v={video_id}"
+        result = subprocess.run(
+            ["yt-dlp", "--dump-json", "--no-download", url],
+            capture_output=True, text=True
+        )
+        if result.returncode != 0:
+            raise RuntimeError(f"yt-dlp metadata extraction failed: {result.stderr}")
+        
+        metadata = json.loads(result.stdout)
+        return {
+            "title": metadata.get("title"),
+            "channel": metadata.get("uploader"),
+            "duration": metadata.get("duration"),
+            "upload_date": metadata.get("upload_date"),
+            "view_count": metadata.get("view_count"),
+            "description": metadata.get("description", "")[:2000],  
+            "categories": metadata.get("categories", []),
+            "tags": metadata.get("tags", []),
+        }
 
+    def _metadata_from_ffprobe(self, local_file_path: str) -> Dict[str, Any]:
+        """ffprobe when yt-dlp metadata extraction is unavailable."""
+        import json
+        result = subprocess.run(
+            [
+                "ffprobe", "-v", "quiet", 
+                "-print_format", "json",
+                "-show_format", "-show_streams", 
+                local_file_path
+            ],
+            capture_output=True, text=True
+        )
+        if result.returncode != 0:
+            raise RuntimeError(f"ffprobe failed: {result.stderr}")
 
-
-# ─── Utility ─────────────────────────────────────────────────────────────────
-def _extract_yt_id(url: str) -> Optional[str]:
-    """Extracts the YouTube video ID from various URL formats."""
-    patterns = [
-        r"youtu\.be/([^?&]+)",  # youtu.be/VIDEOID
-        r"youtube\.com/watch\?v=([^?&]+)",  # youtube.com/watch?v=VIDEOID
-        r"youtube\.com/embed/([^?&]+)",  # youtube.com/embed/VIDEOID
-        r"youtube\.com/v/([^?&]+)",  # youtube.com/v/VIDEOID
-        r"(?:v=|youtu\.be/)([A-Za-z0-9_-]{11})", # v=VIDEOID
-        r"shorts/([A-Za-z0-9_-]{11})", # youtube.com/shorts/VIDEOID
-
-    ]
-    for pattern in patterns:
-        match = re.search(pattern, url)
-        if match:
-            return match.group(1)
-    return None
+        raw_metadata = json.loads(result.stdout)
+        fmt = raw_metadata.get("format", {})
+        return {
+            "title": fmt.get("tags", {}).get("title"),
+            "channel": fmt.get("tags", {}).get("artist"),
+            "duration": fmt.get("duration"),
+            "upload_date": fmt.get("tags", {}).get("creation_time"),
+            "view_count": fmt.get("tags", {}).get("view_count"),
+        }
 
 # Example usage:
 if __name__ == "__main__":
@@ -91,5 +128,8 @@ if __name__ == "__main__":
     try:
         local_path, video_id = vi_service.download_youtube_video(test_url)
         logger.info(f"Downloaded video saved to: {local_path} with ID: {video_id}")
+
+        metadata = vi_service.extract_metadata(local_path, video_id)
+        logger.info(f"Extracted metadata: {metadata}")
     except Exception as e:
         logger.error(f"Error downloading video: {e}")
