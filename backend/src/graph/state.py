@@ -16,7 +16,7 @@ class VideoAuditState:
     video_id: str
 
     local_file_path: Optional[str] 
-    video_metadata: Optional[str, Any]
+    video_metadata: Optional[Dict[str, Any]]
     transcript: Optional[str]
     ocr_text: List[str]
 
