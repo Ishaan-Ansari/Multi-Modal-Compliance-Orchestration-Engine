@@ -28,5 +28,7 @@ dependencies = [
     "sqlalchemy>=2.0.45",
     "streamlit>=1.52.2",
     "uvicorn>=0.40.0",
+    "whisper>=1.1.10",
+    "youtube-transcript-api>=1.2.4",
     "yt-dlp>=2025.1.12",
 ]

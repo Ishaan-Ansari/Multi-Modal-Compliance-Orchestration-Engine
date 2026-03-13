@@ -71,7 +71,47 @@ class VideoIndexerService:
         except Exception as e:
             logger.warning(f"yt-dlp metadata extraction failed: {e}. Falling back to ffprobe.")
             return self._metadata_from_ffprobe(local_file_path)
+
+    def extract_transcript(self, local_file_path: str, video_id: str) -> str:
+        """Extracts transcript using yt-dlp captions or falls back to Whisper."""
+        try:
+            transcript = self._transcript_from_yt_dlp(video_id)
+            if transcript:
+                logger.info("Transcript extracted from YouTube captions.")
+                return transcript
+        except Exception as e:
+            logger.warning(f"yt-dlp transcript extraction failed: {e}. Falling back to Whisper.")
+
+        logger.info("Extracting transcript using Whisper...")
+        return self._transcript_from_whisper(local_file_path)
+    
+    def extract_ocr(self, local_file_path: str) -> List[str]:
+        """Extracts OCR text from video frames."""
+        frames_dir = Path(DOWNLOAD_DIR) / "frames" / Path(local_file_path).stem
+        frames_dir.mkdir(parents=True, exist_ok=True)
+
+        frame_pattern = str(frames_dir / "frame_%04d.jpg")
+        cmd = [
+            "ffmpeg", 
+            "-y", "-loglevel", "error",  
+            "-i", local_file_path,       
+            "-vf", f"fps=1/{FRAME_SAMPLING_RATE}",
+            "-q:v", "2",
+            frame_pattern,              
+        ]
+
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        if result.returncode != 0:
+            raise RuntimeError(f"ffmpeg frame extraction failed: {result.stderr}")
         
+        frame_files = sorted(frames_dir.glob("frame_*.jpg"))
+        ocr_texts = []
+        for frame in frame_files:
+            text = self._run_tesseract(str(frame))
+            ocr_texts.append(text)
+
+        return ocr_texts
+
 # ─── Private Helpers Functions ────────────────────────────────────────────────────────
     def _metadata_from_yt_dlp(self, video_id: str) -> Dict[str, Any]:
         """Extracts metadata using yt-dlp."""
@@ -120,6 +160,39 @@ class VideoIndexerService:
             "upload_date": fmt.get("tags", {}).get("creation_time"),
             "view_count": fmt.get("tags", {}).get("view_count"),
         }
+    
+    def _transcript_from_whisper(self, local_file_path: str) -> str:
+        """Extracts transcript using OpenAI Whisper."""
+        import whisper
+        model = whisper.load_model("base")
+
+        result = model.transcribe(local_file_path, fp16=False)
+        return result.get("text", "")
+
+    def _run_tesseract(self, image_path: str) -> str:
+        """Runs Tesseract OCR on the given image."""
+        result = subprocess.run(
+            ["tesseract", image_path, "stdout"],
+            capture_output=True, text=True
+        )
+        return result.stdout.strip() if result.returncode == 0 else ""
+    
+    def _transcript_from_yt_dlp(self, video_id: str) -> str:
+        """Extracts transcript using yt-dlp captions."""
+        from youtube_transcript_api import YouTubeTranscriptApi
+        try:
+            ytt_api = YouTubeTranscriptApi()
+            fetched_transcript = ytt_api.fetch(video_id)
+
+            transcript = ""
+            for snippet in fetched_transcript:
+                transcript += snippet.text + " "
+            
+            return transcript.strip()
+
+        except Exception as e:
+            logger.warning(f"YouTubeTranscriptApi failed: {e}")
+            return ""  
 
 # Example usage:
 if __name__ == "__main__":
@@ -130,6 +203,22 @@ if __name__ == "__main__":
         logger.info(f"Downloaded video saved to: {local_path} with ID: {video_id}")
 
         metadata = vi_service.extract_metadata(local_path, video_id)
-        logger.info(f"Extracted metadata: {metadata}")
+        logger.info(f"Extracted metadata")
+
+        transcript = vi_service.extract_transcript(local_path, video_id)
+        logger.info(f"Extracted transcript")
+
+        import pdb; pdb.set_trace()  
+
+        ocr_text = vi_service.extract_ocr(local_path)
+
+        logger.info(f"Extracted OCR text from frames: {ocr_text[:3]}")  # log first 3 frames' OCR
+
+        # Clean up
+        os.remove(local_path)
+
+        logger.info("Video indexing complete.")
+
+        print(ocr_text[:3])  # print first 3 frames' OCR for quick verification
     except Exception as e:
         logger.error(f"Error downloading video: {e}")
