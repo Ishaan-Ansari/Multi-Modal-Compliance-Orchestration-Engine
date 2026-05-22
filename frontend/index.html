@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Compliance Orchestration Engine</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <div class="layout">
+
+    <!-- ── Sidebar ───────────────────────────────────────────── -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <div class="logo-mark">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <path d="M9 1L17 5v8l-8 4-8-4V5l8-4z" stroke="currentColor" stroke-width="1.4" fill="none"/>
+            <circle cx="9" cy="9" r="2.5" fill="currentColor"/>
+          </svg>
+        </div>
+        <div>
+          <div class="logo-name">MMCOE</div>
+          <div class="logo-sub">v1.0.0</div>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="#" class="nav-item active" data-view="dashboard">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="8" y="1" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="1" y="8" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="8" y="8" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.2"/></svg>
+          Dashboard
+        </a>
+        <a href="#" class="nav-item" data-view="history">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.2"/><path d="M7 4v3.5l2.5 1.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+          Audit History
+        </a>
+        <a href="#" class="nav-item" data-view="rulebook">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="2" y="1" width="10" height="12" rx="1" stroke="currentColor" stroke-width="1.2"/><path d="M5 4h4M5 7h4M5 10h2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+          Rulebook
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="env-badge" id="envBadge">
+          <span class="env-dot"></span>
+          <span id="envLabel">Connecting…</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ── Main ──────────────────────────────────────────────── -->
+    <main class="main">
+
+      <!-- Header -->
+      <header class="topbar">
+        <div>
+          <h1 class="page-title">Audit Dashboard</h1>
+          <p class="page-sub">Multi-modal video compliance pipeline</p>
+        </div>
+        <div id="globalStatus" class="status-pill pill-idle">Idle</div>
+      </header>
+
+      <!-- URL input -->
+      <section class="url-section">
+        <div class="url-bar">
+          <div class="url-icon">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1C3.686 1 1 3.686 1 7s2.686 6 6 6 6-2.686 6-6-2.686-6-6-6z" stroke="currentColor" stroke-width="1.2"/><path d="M1 7h12M7 1C5.5 2.5 4.5 4.5 4.5 7S5.5 11.5 7 13M7 1c1.5 1.5 2.5 3.5 2.5 6S8.5 11.5 7 13" stroke="currentColor" stroke-width="1.2"/></svg>
+          </div>
+          <input id="urlInput" type="text" placeholder="Paste a YouTube URL to audit…" autocomplete="off" spellcheck="false" />
+          <button id="auditBtn" onclick="startAudit()">
+            <span id="auditBtnText">Run Audit</span>
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6h8M7 3l3 3-3 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+        <div class="url-hints">
+          <span onclick="useExample('https://www.youtube.com/watch?v=dQw4w9WgXcQ')">Rick Astley — Never Gonna Give You Up</span>
+          <span onclick="useExample('https://www.youtube.com/watch?v=9bZkp7q19f0')">PSY — Gangnam Style</span>
+        </div>
+      </section>
+
+      <!-- Pipeline stations -->
+      <section class="pipeline-section">
+        <div class="pipeline">
+          <div class="station" id="station1">
+            <div class="station-header">
+              <div class="station-tag">01</div>
+              <div class="station-dot idle" id="dot1"></div>
+            </div>
+            <div class="station-icon">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 5h14M3 10h10M3 15h7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="16" cy="13" r="3" stroke="currentColor" stroke-width="1.4"/><path d="M18.5 15.5l-1.5-1.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+            </div>
+            <div class="station-name">The Watcher</div>
+            <div class="station-desc">Downloads video, extracts transcript via YouTube captions or Whisper, samples frames for OCR.</div>
+            <div class="station-status-text" id="s1text">Waiting for input</div>
+            <div class="station-log" id="log1"></div>
+          </div>
+
+          <div class="pipeline-arrow">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M15 8l4 4-4 4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+
+          <div class="station" id="station2">
+            <div class="station-header">
+              <div class="station-tag">02</div>
+              <div class="station-dot idle" id="dot2"></div>
+            </div>
+            <div class="station-icon">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 2l2 6h6l-5 3.5 2 6L10 14l-5 3.5 2-6L2 8h6l2-6z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="station-name">The Judge</div>
+            <div class="station-desc">Retrieves relevant compliance rules from Rulebook, sends content to Claude for structured judgment.</div>
+            <div class="station-status-text" id="s2text">Waiting for Station 01</div>
+            <div class="station-log" id="log2"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Results -->
+      <section id="resultsSection" style="display:none;">
+
+        <!-- Verdict banner -->
+        <div id="verdictBanner" class="verdict-banner"></div>
+
+        <!-- Metrics -->
+        <div class="metrics-grid" id="metricsGrid"></div>
+
+        <!-- Issues + chart row -->
+        <div class="results-row">
+          <div class="panel panel-issues">
+            <div class="panel-header">
+              <span class="panel-title">Compliance Issues</span>
+              <div class="filter-row" id="filterRow"></div>
+            </div>
+            <div class="issues-wrap">
+              <table class="issues-table">
+                <thead>
+                  <tr>
+                    <th>Severity</th>
+                    <th>Category</th>
+                    <th>Description</th>
+                    <th>Timestamp</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="issuesTbody"></tbody>
+              </table>
+              <div id="noIssues" class="no-issues" style="display:none;">
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="14" stroke="currentColor" stroke-width="1.4"/><path d="M10 16l4 4 8-8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                No compliance issues found
+              </div>
+            </div>
+          </div>
+
+          <div class="panel panel-sidebar-right">
+            <div class="panel-header"><span class="panel-title">Severity Breakdown</span></div>
+            <div class="chart-legend" id="chartLegend"></div>
+            <div class="chart-wrap">
+              <canvas id="sevChart"></canvas>
+              <div class="chart-center" id="chartCenter"></div>
+            </div>
+
+            <div class="meta-section">
+              <div class="panel-title" style="margin-bottom:10px;">Video Metadata</div>
+              <div id="metaBlock"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Empty state -->
+      <div id="emptyState" class="empty-state">
+        <div class="empty-icon">
+          <svg width="48" height="48" viewBox="0 0 48 48" fill="none"><rect x="6" y="4" width="36" height="40" rx="4" stroke="currentColor" stroke-width="1.6"/><path d="M14 16h20M14 24h20M14 32h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="38" cy="38" r="8" fill="var(--bg)" stroke="currentColor" stroke-width="1.6"/><path d="M35 38l2 2 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <p class="empty-title">No audit running</p>
+        <p class="empty-sub">Paste a YouTube URL above and click Run Audit to begin.</p>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Issue detail modal -->
+  <div id="issueModal" class="modal-backdrop" style="display:none;" onclick="closeModal(event)">
+    <div class="modal">
+      <button class="modal-close" onclick="document.getElementById('issueModal').style.display='none'">✕</button>
+      <div id="modalContent"></div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
