@@ -2,6 +2,7 @@
 
 import re
 from typing import List, Optional
+from pypdf import PdfReader
 
 from openai import OpenAI, AsyncOpenAI
 from config import OPENAI_API_KEY
@@ -9,6 +10,33 @@ from constants import DEFAULT_OPENAI_EMBEDDING_MODEL
 
 OPENAI_CLIENT = OpenAI(api_key=OPENAI_API_KEY)
 OPENAI_ASYNC_CLIENT = AsyncOpenAI(api_key=OPENAI_API_KEY)
+
+from logger import loggerUtils as logger
+
+def extract_text_from_pdf(file_path: str) -> str:
+    """Extracts text from a PDF file."""
+    try:
+        reader = PdfReader(file_path)
+        
+        if reader.is_encrypted:
+            logger.warning(f"PDF file {file_path} is encrypted. Skipping.")
+            return ""
+        
+        pages_text = []
+        for i, page in enumerate(reader.pages):
+            try:
+                text = page.extract_text() or ""
+                if text.strip():
+                    pages_text.append(text)
+                else:
+                    logger.warning(f"No text extracted from page {i} of {file_path}.")
+            except Exception as e:
+                logger.error(f"Error extracting text from page {i} of {file_path}: {e}")
+        return "\n\n".join(pages_text)
+    except Exception as e:
+        logger.error(f"Error reading PDF file {file_path}: {e}")
+        return ""
+
 
 def _extract_yt_id(url: str) -> Optional[str]:
     """Extracts the YouTube video ID from various URL formats."""

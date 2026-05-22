@@ -8,6 +8,8 @@ from backend.scripts.text_splitter import TextSplitter, RecursiveCharacterChunki
 from backend.scripts.vector_database import VectorDatabase
 from backend.scripts.embeddings import Embeddings
 
+from backend.utils import extract_text_from_pdf
+
 from logger import loggerIndexing as logger
 
 
@@ -20,23 +22,34 @@ def index_documents():
         text_splitter = TextSplitter(strategy=RecursiveCharacterChunkingStrategy())
         embeddings = Embeddings()
 
-        for file in glob.glob(os.path.join(data_dir, "*.txt")):
-            with open(file, "r") as f:
-                text = f.read()
+        pdf_files = glob.glob(os.path.join(data_dir, "*.pdf"))
+        if not pdf_files:
+            logger.warning("No PDF files found in the data directory.")
+            return
+        
+        for file in pdf_files:
+            source_name = os.path.basename(file)
 
-                chunks = text_splitter.create_chunks(text)
+            logger.info(f"Processing file: {file}")
+            text = extract_text_from_pdf(file)
 
-                if not chunks:
-                    logger.warning(f"No chunks created for file: {file}")
-                    continue
+            if not text.strip():
+                logger.warning(f"No text extracted from file: {file}")
+                continue
 
-                embeddings_list = embeddings.get_embeddings(chunks)
-                source_name = os.path.basename(file)
-                documents = [
-                    {"text": chunk, "source": source_name} 
-                    for chunk in chunks    
-                ]
-                vector_db.add_documents(documents, embeddings_list)
+            chunks = text_splitter.create_chunks(text)
+
+            if not chunks:
+                logger.warning(f"No chunks created for file: {file}")
+                continue
+
+            embeddings_list = embeddings.get_embeddings(chunks)
+            source_name = os.path.basename(file)
+            documents = [
+                {"text": chunk, "source": source_name} 
+                for chunk in chunks    
+            ]
+            vector_db.add_documents(documents, embeddings=embeddings_list)
         logger.info("Document indexing completed successfully.")
     except Exception as e:
         logger.error(f"Error during document indexing: {e}")
