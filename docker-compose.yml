@@ -1,0 +1,20 @@
+services:
+  chromadb:
+    image: chromadb/chromadb:1.5.1
+    container_name: chromadb
+    environment:
+      - CHROMA_SERVER_PERSIST_DIRECTORY=/chroma_db
+    ports:
+      - "8000:8000"
+    networks:
+      - app_network
+    volumes:
+      - chroma_data:/chroma_db
+
+volumes:
+  chroma_data:
+    driver: local
+
+networks:
+  app_network:
+    driver: bridge
