@@ -13,3 +13,5 @@ class GPT_Model(Enum):
     @classmethod
     def values(cls):
         return [i.value for i in cls]
+
+DEFAULT_OPENAI_EMBEDDING_MODEL = "text-embedding-3-small"
