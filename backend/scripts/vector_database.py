@@ -40,4 +40,12 @@ class VectorDatabase:
             logger.error(f"Error adding documents to vector database: {e}")
             raise e
         
+    def query(self, query_embedding: List[float], top_k: int = 5) -> List[Dict[str, str]]:
+        """Query the vector database for similar documents."""
+        try:
+            results = self.collection.query(query_embeddings=[query_embedding], n_results=top_k)
+            return results.get("documents", [])
+        except Exception as e:
+            logger.error(f"Error querying vector database: {e}")
+            raise e
         
