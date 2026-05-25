@@ -101,10 +101,12 @@ def index_video_node(state: VideoAuditState)->Dict[str, Any]:
             raise ValueError(f"Unsupported video URL: {video_url}")
         
         logger.info("Exctracting transcript...")
+
         transcript = video_indexer.extract_transcript(local_file_path, video_id)
 
         ocr_text = video_indexer.extract_ocr(local_file_path, video_id)
-        # Clean up local file after processing
+
+        # Clean up local file after processing       
         if os.path.exists(local_file_path):
             os.remove(local_file_path)
             logger.info(f"Removed local file: {local_file_path}")
@@ -161,9 +163,47 @@ def compliance_audit_node(state: VideoAuditState)->Dict[str, Any]:
     # docs = vector_store.similarity_search(query_text, k=3)
 
     # Step B: Hybrid retrieval - we perform two separate retrievals, one using the full query text and another using the extracted claims. We then combine the results to create a more comprehensive set of candidate documents for the compliance audit.
+    
     all_docs = []
-    # for claim in claims:
-    #     retrieved = 
+    for claim in claims:
+        retrieved = vector_store.similarity_search(
+            claim,
+            k=5
+        )
+        all_docs.extend(retrieved)
+
+    # Fallback if claim-wise retrieval returns no results
+    if not all_docs:
+        logger.warning("Claim-wise retrieval returned no results. Falling back to query-based retrieval.")
+        all_docs = vector_store.similarity_search(
+            query_text,
+            k=5
+        )
+
+    # deduplicate retrieved documents
+    seen_ids = set()
+    unique_docs = []
+    for doc in all_docs:
+        doc_id = doc.metadata.get("id")
+        if doc_id and doc_id not in seen_ids:
+            seen_ids.add(doc_id)
+            unique_docs.append(doc)
+
+    # Step C: Rerank the retrieved documents using a cross-encoder to prioritize the most relevant ones for the compliance audit.
+    rerank_queries = f"Brand compliance rules relevant toL {' | '.join(claims)}"
+    try:
+        top_docs = rerank(rerank_queries, unique_docs, top_k=5)
+        if not top_docs:
+            logger.warning("Reranking returned no results. Using original retrieved documents.")
+            top_docs = unique_docs[:5]  
+    except Exception as e:
+        logger.error(f"Error during reranking: {e}. Using original retrieved documents.")
+        top_docs = unique_docs[:5]
+
+    # Build context list from top_docs
+    retrieved_contexts = [doc.page_content for doc in top_docs if getattr(doc, "page_content", "").strip()]
+    retrieved_rules = "\n\n".join(retrieved_contexts)
+
 
     system_prompt = f"""
     You are a senior brand compliance auditor.
