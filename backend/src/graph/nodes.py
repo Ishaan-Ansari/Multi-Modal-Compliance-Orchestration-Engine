@@ -2,6 +2,7 @@ import os
 import re
 import json
 from openai import OpenAI, AsyncOpenAI
+from constants import GPT_MODEL
 from config import OPENAI_API_KEY
 from typing import Any, Dict, List
 from logger import loggerNodes as logger
@@ -15,6 +16,8 @@ from backend.scripts.embeddings import Embeddings
 
 from backend.src.services.video_indexer import VideoIndexerService
 from sentence_transformers import CrossEncoder
+
+from utilities.ai_generator import OpenAITextGenerator, OpenAI_Text_Config
 
 openai_client = OpenAI(api_key=OPENAI_API_KEY)
 async_openai_client = AsyncOpenAI(api_key=OPENAI_API_KEY)
