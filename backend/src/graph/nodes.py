@@ -152,7 +152,7 @@ def compliance_audit_node(state: VideoAuditState)->Dict[str, Any]:
             "retrieved_contexts": [],
         }
     
-    # RAG retrieval
+    # RAG retrieval 
 
     # Step A: Build retrieval claims from the transcript and OCR text. We concatenate the transcript and OCR text to create a single query string that represents the content of the video. This query will be used to search for relevant documents in the vector store.
     ocr_text = state.get("ocr_text", [])
