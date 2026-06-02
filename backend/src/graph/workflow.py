@@ -1,4 +1,4 @@
-from langgraph import StateGraph, END
+from langgraph.graph import StateGraph, END
 
 from backend.src.graph.state import VideoAuditState
 
@@ -24,14 +24,14 @@ def create_graph() -> StateGraph:
         StateGraph: The compiled workflow graph ready for execution.
     """
     # Initialize the graph with the state schema
-    workflow = StateGraph(initial_state=VideoAuditState)
+    workflow = StateGraph(VideoAuditState)
 
     # Add nodes to the graph
     workflow.add_node("indexer", index_video_node)
     workflow.add_node("auditor", audit_content_node)
 
     # Define the entry point
-    workflow.set_entry("indexer")
+    workflow.set_entry_point("indexer")
 
     # Add edges to the graph
     workflow.add_edge("indexer", "auditor")

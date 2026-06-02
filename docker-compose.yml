@@ -1,6 +1,6 @@
 services:
   chromadb:
-    image: chromadb/chromadb:1.5.1
+    image: chromadb/chroma:1.5.1
     container_name: chromadb
     environment:
       - CHROMA_SERVER_PERSIST_DIRECTORY=/chroma_db

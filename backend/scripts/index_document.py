@@ -58,3 +58,7 @@ def index_documents():
     except Exception as e:
         logger.error(f"Error during document indexing: {e}")
         raise e
+
+if __name__ == "__main__":
+    logger.info("Starting document indexing process.")
+    index_documents()

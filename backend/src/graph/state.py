@@ -22,6 +22,7 @@ class VideoAuditState:
 
     # analysis results
     compliance_results: Annotated[List[ComplianceIssue], operator.add]
+    retrieved_context: List[Dict]
 
     # final deliverables
     final_status: str

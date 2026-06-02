@@ -6,6 +6,10 @@ from constants import GPT_MODEL
 from config import OPENAI_API_KEY
 from typing import Any, Dict, List
 from logger import loggerNodes as logger
+from langchain_openai import ChatOpenAI
+from langchain_openai import OpenAIEmbeddings
+
+from langchain_community.vectorstores import Chroma   
 
 
 from langchain_core.messages import SystemMessage, HumanMessage
@@ -21,6 +25,8 @@ from utilities.ai_generator import OpenAITextGenerator, OpenAI_Text_Config
 
 openai_client = OpenAI(api_key=OPENAI_API_KEY)
 async_openai_client = AsyncOpenAI(api_key=OPENAI_API_KEY)
+
+llm = ChatOpenAI(model=GPT_MODEL, api_key=OPENAI_API_KEY)
 
 _reranker = None
 
@@ -39,7 +45,7 @@ def rerank(query: str, docs: list, top_k: int = 5)->list:
     if not docs:
         return []
     
-    pairs = [(query, doc.content) for doc in docs]
+    pairs = [(query, doc.page_content) for doc in docs]
     scores = get_reranker().predict(pairs)
 
     scored_docs = sorted(zip(scores, docs), key=lambda x: x[0], reverse=True)
@@ -157,7 +163,7 @@ def compliance_audit_node(state: VideoAuditState)->Dict[str, Any]:
     # Step A: Build retrieval claims from the transcript and OCR text. We concatenate the transcript and OCR text to create a single query string that represents the content of the video. This query will be used to search for relevant documents in the vector store.
     ocr_text = state.get("ocr_text", [])
     query_text = f"{transcript} {' '.join(ocr_text)}"
-    claims = extract_claims(transcript, ocr_text, state.get("llm"))
+    claims = extract_claims(transcript, ocr_text, llm)
     if not claims:
         logger.warning("No claims extracted for retrieval. Using fallback query.")
         claims = [query_text[:500]]  # Fallback to truncated transcript as a single claim
@@ -252,7 +258,7 @@ def compliance_audit_node(state: VideoAuditState)->Dict[str, Any]:
             "compliance_results": audit_data.get("compliance_results", []),
             "final_status": audit_data.get("status", "FAIL"),
             "final_report": audit_data.get("final_report", ""),
-            "retrieved_contexts": [doc.metadata for doc in retrieved],  # include metadata of retrieved docs for transparency
+            "retrieved_contexts": [doc.metadata for doc in top_docs],  # include metadata of retrieved docs for transparency
         }
     except Exception as e:
         logger.error(f"Error during compliance audit generation: {e}")
@@ -260,5 +266,5 @@ def compliance_audit_node(state: VideoAuditState)->Dict[str, Any]:
             "compliance_results": [],
             "final_status": "failed",
             "final_report": f"Compliance audit failed due to error: {str(e)}",
-            "retrieved_contexts": [doc.metadata for doc in retrieved],
+            "retrieved_contexts": [doc.metadata for doc in top_docs],
         }
