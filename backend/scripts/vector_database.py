@@ -13,7 +13,8 @@ class VectorDatabase:
         self.client = chromadb.HttpClient(host=chroma_host, port=8000)
 
         self.collection_name = collection_name
-        self.collection = self.client._get_or_create_collection(collection_name)
+        self.collection = self.client.get_or_create_collection(collection_name)
+        logger.info(f"Connected to ChromaDB at {chroma_host}:8000, using collection '{collection_name}'")
 
     def add_documents(self, documents: List[Dict[str, str]], embeddings: List[List[float]]) -> None:
         """Add documents to the vector database."""

@@ -36,14 +36,18 @@ def index_documents():
             if not text.strip():
                 logger.warning(f"No text extracted from file: {file}")
                 continue
-
+                
+            # Split the text into chunks and generate embeddings
             chunks = text_splitter.create_chunks(text)
 
             if not chunks:
                 logger.warning(f"No chunks created for file: {file}")
                 continue
-
+            
+            # Generate embeddings for the chunks and add them to the vector database
             embeddings_list = embeddings.get_embeddings(chunks)
+
+            # Add documents to the vector database with source metadata
             source_name = os.path.basename(file)
             documents = [
                 {"text": chunk, "source": source_name} 
